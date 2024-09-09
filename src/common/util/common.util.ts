@@ -114,7 +114,7 @@ export const getPrismaError = (error: any): PrismaError => {
       };
     case 'P2025':
       return {
-        message: `${error.meta.cause} Model: ${error.meta.modelName}`,
+        message: `Data Not Found`,
         httpStatus: HttpStatus.NOT_FOUND,
       };
     case 'P2003':

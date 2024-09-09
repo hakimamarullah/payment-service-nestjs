@@ -127,7 +127,16 @@ export class PaymentService extends HttpClientBase {
   }
 
   async handleMidtransCallback(body: Record<string, any>) {
-    await this.midtransService.handleCallback(body);
-    return BaseResponse.getSuccessResponse();
+    const isSuccess = await this.midtransService.handleCallback(body);
+    return BaseResponse.getSuccessResponse(isSuccess);
+  }
+
+  async getTransactionById(id: string) {
+    const transaction = await this.prismaService.transactions.findFirstOrThrow({
+      where: {
+        id,
+      },
+    });
+    return BaseResponse.getSuccessResponse(transaction);
   }
 }
