@@ -1,0 +1,52 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  CANCELLED
+}
+
+model Transactions {
+  id                 String        @id @default(uuid())
+  amount             Float         @default(0)
+  adminFee           Float         @default(0)
+  currency           String        @default("IDR")
+  status             PaymentStatus @default(PENDING)
+  customerName       String        @map("customer_name") @db.VarChar(50)
+  tierId             Int           @map("tier_id")
+  paymentType        String?       @map("payment_type")
+  vendorName         String?       @map("vendor_name")
+  vendorTrxId        String?       @map("vendor_trx_id")
+  vendorPaymentToken String?       @map("vendor_payment_token") @db.VarChar(500)
+  note               String?
+  createdAt          DateTime      @default(now()) @map("created_at")
+  updatedAt          DateTime      @default(now()) @updatedAt @map("updated_at")
+
+  @@map("transactions")
+}
+
+model ApiLog {
+  id              Int      @id @default(autoincrement())
+  path            String
+  method          String
+  responseMessage String?  @map("response_message")
+  responseCode    Int?     @map("response_code")
+  query           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now()) @updatedAt
+
+  @@map("api_log")
+}
