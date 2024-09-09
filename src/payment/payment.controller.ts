@@ -18,6 +18,7 @@ import { PaymentService } from './payment.service';
 import { OrderRequest } from './dto/request/order.request';
 import { ApiBaseResponse } from '../common/decorators/swagger.decorator';
 import { OrderResponse } from './dto/response/order.response';
+import { Public } from '../auth/decorator/public.decorator';
 
 @ApiTags('PaymentController')
 @Controller('payment')
@@ -35,9 +36,11 @@ export class PaymentController {
   }
 
   @Post('/midtrans/notification')
+  @Public()
   @ApiOperation({ summary: 'Midtrans Webhook' })
   @HttpCode(HttpStatus.OK)
   @ApiBaseResponse({ model: Object })
+  @ApiBody({ type: Object })
   async midtransPaymentNotification(@Body() notification: Record<string, any>) {
     return await this.paymentService.handleMidtransCallback(notification);
   }
