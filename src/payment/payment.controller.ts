@@ -16,9 +16,8 @@ import {
 } from '@nestjs/swagger';
 import { PaymentService } from './payment.service';
 import { OrderRequest } from './dto/request/order.request';
-import { ApiBaseResponse } from '../common/decorators/swagger.decorator';
 import { OrderResponse } from './dto/response/order.response';
-import { Public } from '../auth/decorator/public.decorator';
+import { ApiBaseResponse, Public } from '@hakimamarullah/commonbundle-nestjs';
 
 @ApiTags('PaymentController')
 @Controller('payment')

@@ -1,7 +1,7 @@
 import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { PaymentGatewayService } from '../services/interfaces/payment-gateway-service.interface';
 import { PaymentRequestDto } from '../services/dto/payment-request.dto';
-import { HttpClientBase } from '../services/http-client.base';
+
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { createHash } from 'crypto';
@@ -9,6 +9,10 @@ import { MidtransNotification } from './dto/midtrans-notification.dto';
 import { PrismaService } from '../prisma-service/prisma.service';
 import { PaymentStatus } from '@prisma/client';
 import { ApiKeyManagerService } from '../api-key-manager/api-key-manager.service';
+import {
+  HttpClientBase,
+  HttpMethod,
+} from '@hakimamarullah/commonbundle-nestjs';
 
 @Injectable()
 export class MidtransService
@@ -47,7 +51,7 @@ export class MidtransService
   }
   async createPayment(paymentRequestDto: PaymentRequestDto): Promise<any> {
     return await this.handleRequest(
-      'post',
+      HttpMethod.POST,
       '/v1/transactions',
       paymentRequestDto.getPayload(),
     );

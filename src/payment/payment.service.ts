@@ -4,14 +4,17 @@ import {
   PaymentGatewayService,
 } from '../services/interfaces/payment-gateway-service.interface';
 import { OrderRequest } from './dto/request/order.request';
-import { HttpClientBase } from '../services/http-client.base';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma-service/prisma.service';
 import { PaymentStatus } from '@prisma/client';
 import { PaymentRequestDto } from '../services/dto/payment-request.dto';
-import { BaseResponse } from '../common/dto/base-response.dto';
-import axios, { AxiosRequestConfig } from 'axios';
+import axios from 'axios';
 import { OrderResponse } from './dto/response/order.response';
+import {
+  BaseResponse,
+  HttpClientBase,
+  HttpMethod,
+} from '@hakimamarullah/commonbundle-nestjs';
 
 @Injectable()
 export class PaymentService extends HttpClientBase {
@@ -40,17 +43,17 @@ export class PaymentService extends HttpClientBase {
         Accept: 'application/json',
         Authorization: `Bearer ${authToken}`,
       },
-    } as AxiosRequestConfig);
+    });
     this.initLogger();
   }
   async buyApiKey(orderRequest: OrderRequest) {
     const { responseData: apiKeyTierInfo } = await this.handleRequest(
-      'get',
+      HttpMethod.GET,
       `${this.apiKeyManagerBaseUrl}/api-key-manager/tiers/${orderRequest.tierId}/details`,
     );
 
     const { responseData: userInfo } = await this.handleRequest(
-      'get',
+      HttpMethod.GET,
       `${this.authBaseUrl}/users/${orderRequest.customerName}/details`,
     );
 
@@ -66,7 +69,7 @@ export class PaymentService extends HttpClientBase {
           note: `Free Tier (No charge)`,
         },
       });
-      return BaseResponse.getSuccessResponse(transaction);
+      return BaseResponse.getResponse(transaction);
     }
 
     const transaction = (await this.prismaService.transactions.create({
@@ -123,12 +126,12 @@ export class PaymentService extends HttpClientBase {
       await this.midtransService.getPaymentUrl(snapToken);
     orderResponse.adminFee = transaction.adminFee;
     orderResponse.status = transaction.status;
-    return BaseResponse.getSuccessResponse(orderResponse);
+    return BaseResponse.getResponse(orderResponse);
   }
 
   async handleMidtransCallback(body: Record<string, any>) {
     const isSuccess = await this.midtransService.handleCallback(body);
-    return BaseResponse.getSuccessResponse(isSuccess);
+    return BaseResponse.getResponse(isSuccess);
   }
 
   async getTransactionById(id: string) {
@@ -137,6 +140,6 @@ export class PaymentService extends HttpClientBase {
         id,
       },
     });
-    return BaseResponse.getSuccessResponse(transaction);
+    return BaseResponse.getResponse(transaction);
   }
 }

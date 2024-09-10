@@ -1,11 +1,14 @@
 import { HttpException, Injectable, Logger } from '@nestjs/common';
-import { HttpClientBase } from '../services/http-client.base';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { PrismaService } from '../prisma-service/prisma.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { EventConstant } from '../event-listener/event-name.constant';
 import axiosRetry from 'axios-retry';
+import {
+  HttpClientBase,
+  HttpMethod,
+} from '@hakimamarullah/commonbundle-nestjs';
 
 @Injectable()
 export class ApiKeyManagerService extends HttpClientBase {
@@ -52,7 +55,7 @@ export class ApiKeyManagerService extends HttpClientBase {
     };
 
     const { responseMessage, responseCode } = await this.handleRequest(
-      'post',
+      HttpMethod.POST,
       '/api-key-manager/generate',
       payload,
     );
