@@ -7,7 +7,7 @@ import axios from 'axios';
 import { createHash } from 'crypto';
 import { MidtransNotification } from './dto/midtrans-notification.dto';
 import { PrismaService } from '../prisma-service/prisma.service';
-import { PaymentStatus } from '@prisma/client';
+import { JobStatus, PaymentStatus } from '@prisma/client';
 import { ApiKeyManagerService } from '../api-key-manager/api-key-manager.service';
 import {
   HttpClientBase,
@@ -47,7 +47,7 @@ export class MidtransService
         Authorization: `Basic ${authToken}`,
       },
     });
-    this.initLogger();
+    this.initClientLogger();
   }
   async createPayment(paymentRequestDto: PaymentRequestDto): Promise<any> {
     return await this.handleRequest(
@@ -86,14 +86,9 @@ export class MidtransService
       data: dataToUpdate,
     });
 
-    const { customerName, tierId, status } = update;
+    const { status } = update;
     if (status === PaymentStatus.PAID) {
-      await this.apiKeyManagerService.generateApiKey(
-        customerName,
-        tierId,
-        'ACTIVE',
-        orderId,
-      );
+      await this.prismaService.createGenerateKeyJob(orderId);
     }
     this.logger.log(`END HANDLE CALLBACK ${orderId} data found ${!!update}`);
     return Promise.resolve(true);

@@ -1,4 +1,4 @@
-import { HttpException, Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { PrismaService } from '../prisma-service/prisma.service';
@@ -38,7 +38,7 @@ export class ApiKeyManagerService extends HttpClientBase {
       retryDelay: axiosRetry.linearDelay(1000),
       retryCondition: (error) => error.response?.status !== 200,
     });
-    this.initLogger();
+    this.initClientLogger();
   }
 
   async generateApiKey(
@@ -54,11 +54,12 @@ export class ApiKeyManagerService extends HttpClientBase {
       refId: referenceId,
     };
 
-    const { responseMessage, responseCode } = await this.handleRequest(
-      HttpMethod.POST,
-      '/api-key-manager/generate',
-      payload,
-    );
+    const { responseMessage, responseCode, responseData } =
+      await this.handleRequest(
+        HttpMethod.POST,
+        '/api-key-manager/generate',
+        payload,
+      );
 
     void this.eventEmitter.emitAsync(EventConstant.EventName.LOG_API, {
       path: '/api-key-manager/generate',
@@ -68,12 +69,10 @@ export class ApiKeyManagerService extends HttpClientBase {
       reffId: referenceId,
     });
 
-    if (responseCode !== 200) {
-      throw new HttpException(responseMessage, responseCode);
-    }
-
     this.logger.log(
       `Generate API KEY Response: ${responseMessage} status: ${responseCode}`,
     );
+
+    return { responseMessage, responseCode, responseData };
   }
 }

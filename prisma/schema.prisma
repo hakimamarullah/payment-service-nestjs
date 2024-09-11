@@ -19,6 +19,12 @@ enum PaymentStatus {
   CANCELLED
 }
 
+enum JobStatus {
+  OPEN
+  DONE
+  FAILED
+}
+
 model Transactions {
   id                 String        @id @default(uuid())
   amount             Float         @default(0)
@@ -50,4 +56,16 @@ model ApiLog {
   updatedAt       DateTime @default(now()) @updatedAt
 
   @@map("api_log")
+}
+
+model GenerateKeyJob {
+  jobId     Int       @id @default(autoincrement()) @map("job_id")
+  refId     String    @unique @map("ref_id")
+  status    JobStatus @default(OPEN)
+  error     String?   @map("error")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @default(now()) @updatedAt
+
+  @@index([refId])
+  @@map("generate_key_job")
 }

@@ -6,7 +6,7 @@ import {
 import { OrderRequest } from './dto/request/order.request';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma-service/prisma.service';
-import { PaymentStatus } from '@prisma/client';
+import { JobStatus, PaymentStatus } from '@prisma/client';
 import { PaymentRequestDto } from '../services/dto/payment-request.dto';
 import axios from 'axios';
 import { OrderResponse } from './dto/response/order.response';
@@ -44,7 +44,7 @@ export class PaymentService extends HttpClientBase {
         Authorization: `Bearer ${authToken}`,
       },
     });
-    this.initLogger();
+    this.initClientLogger();
   }
   async buyApiKey(orderRequest: OrderRequest) {
     const { responseData: apiKeyTierInfo } = await this.handleRequest(
@@ -58,7 +58,7 @@ export class PaymentService extends HttpClientBase {
     );
 
     if (apiKeyTierInfo.name === 'FREE') {
-      const transaction = await this.prismaService.transactions.create({
+      const transaction = (await this.prismaService.transactions.create({
         data: {
           customerName: orderRequest.customerName,
           tierId: apiKeyTierInfo.id,
@@ -68,8 +68,10 @@ export class PaymentService extends HttpClientBase {
           currency: 'IDR',
           note: `Free Tier (No charge)`,
         },
-      });
-      return BaseResponse.getResponse(transaction);
+      })) as any;
+
+      await this.prismaService.createGenerateKeyJob(transaction.id);
+      return BaseResponse.getResponse(OrderResponse.build(transaction));
     }
 
     const transaction = (await this.prismaService.transactions.create({
@@ -119,13 +121,9 @@ export class PaymentService extends HttpClientBase {
         vendorPaymentToken: snapToken,
       },
     });
-    const orderResponse = new OrderResponse();
-    orderResponse.trxId = transaction.id;
-    orderResponse.amount = transaction.amount;
+    const orderResponse = OrderResponse.build(transaction);
     orderResponse.paymentUrl =
       await this.midtransService.getPaymentUrl(snapToken);
-    orderResponse.adminFee = transaction.adminFee;
-    orderResponse.status = transaction.status;
     return BaseResponse.getResponse(orderResponse);
   }
 

@@ -18,6 +18,8 @@ import {
   CachingService,
   JwtConfigService,
 } from '@hakimamarullah/commonbundle-nestjs';
+import { SchedulerModule } from './scheduler/scheduler.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -26,6 +28,7 @@ import {
     ConfigModule.forRoot({ isGlobal: true, cache: true }),
     CacheModule.register(cachingConfig),
     EventEmitterModule.forRoot({ global: true }),
+    ScheduleModule.forRoot({ cronJobs: true }),
     JwtModule.registerAsync({
       imports: [AppPropertiesModule],
       useClass: JwtConfigService,
@@ -34,6 +37,7 @@ import {
     PaymentModule,
     ApiKeyManagerModule,
     EventListenerModule,
+    SchedulerModule,
   ],
   controllers: [],
   providers: [

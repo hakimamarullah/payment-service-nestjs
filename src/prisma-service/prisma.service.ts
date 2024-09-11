@@ -1,5 +1,5 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { JobStatus, PrismaClient } from '@prisma/client';
 import * as process from 'process';
 import { ConfigService } from '@nestjs/config';
 
@@ -38,5 +38,14 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
         process.exit(1);
       }
     }
+  }
+
+  async createGenerateKeyJob(refId: string, status?: JobStatus): Promise<any> {
+    return this.generateKeyJob.create({
+      data: {
+        refId,
+        status: status ?? JobStatus.OPEN,
+      },
+    });
   }
 }
