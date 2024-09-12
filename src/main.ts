@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { NestExpressApplication } from '@nestjs/platform-express';
-import { Logger, ValidationPipe } from '@nestjs/common';
+import { BadRequestException, Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { json, urlencoded } from 'express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -26,7 +26,13 @@ async function bootstrap() {
     allowedHeaders: ['*'],
   });
   app.setGlobalPrefix(proxyPrefix);
-  app.useGlobalPipes(new ValidationPipe());
+  app.useGlobalPipes(
+    new ValidationPipe({
+      exceptionFactory: (validationErrors = []) => {
+        return new BadRequestException(validationErrors);
+      },
+    }),
+  );
   app.useGlobalFilters(new ErrorFilter());
   app.useGlobalInterceptors(new LoggingInterceptor());
   app.use(json({ limit: '50mb' }));

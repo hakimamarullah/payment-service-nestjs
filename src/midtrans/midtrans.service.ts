@@ -7,8 +7,7 @@ import axios from 'axios';
 import { createHash } from 'crypto';
 import { MidtransNotification } from './dto/midtrans-notification.dto';
 import { PrismaService } from '../prisma-service/prisma.service';
-import { JobStatus, PaymentStatus } from '@prisma/client';
-import { ApiKeyManagerService } from '../api-key-manager/api-key-manager.service';
+import { PaymentStatus } from '@prisma/client';
 import {
   HttpClientBase,
   HttpMethod,
@@ -23,7 +22,6 @@ export class MidtransService
   constructor(
     private readonly configService: ConfigService,
     private readonly prismaService: PrismaService,
-    private readonly apiKeyManagerService: ApiKeyManagerService,
   ) {
     super();
     this.logger = new Logger(MidtransService.name);

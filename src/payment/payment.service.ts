@@ -6,7 +6,7 @@ import {
 import { OrderRequest } from './dto/request/order.request';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma-service/prisma.service';
-import { JobStatus, PaymentStatus } from '@prisma/client';
+import { PaymentStatus } from '@prisma/client';
 import { PaymentRequestDto } from '../services/dto/payment-request.dto';
 import axios from 'axios';
 import { OrderResponse } from './dto/response/order.response';
