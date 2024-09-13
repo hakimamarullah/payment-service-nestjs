@@ -1,5 +1,5 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { JobStatus, PrismaClient } from '@prisma/client';
+import { JobStatus, PaymentStatus, PrismaClient } from '@prisma/client';
 import * as process from 'process';
 import { ConfigService } from '@nestjs/config';
 
@@ -45,6 +45,24 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
       data: {
         refId,
         status: status ?? JobStatus.OPEN,
+      },
+    });
+  }
+
+  async findTransactionsByOwnerAndPaymentStatus(
+    owner: string,
+    paymentStatus: PaymentStatus,
+  ): Promise<any[]> {
+    return this.transactions.findMany({
+      where: {
+        AND: [
+          {
+            customerName: owner,
+          },
+          {
+            status: paymentStatus,
+          },
+        ],
       },
     });
   }

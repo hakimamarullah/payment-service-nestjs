@@ -15,6 +15,9 @@ import {
   HttpClientBase,
   HttpMethod,
 } from '@hakimamarullah/commonbundle-nestjs';
+import { CustomerTrxInquiryRequest } from './dto/request/customer-trx-inquiry.request';
+import { TrxInquiryResponse } from './dto/response/trx-inquiry.response';
+import { ApiKeyManagerService } from '../api-key-manager/api-key-manager.service';
 
 @Injectable()
 export class PaymentService extends HttpClientBase {
@@ -25,6 +28,7 @@ export class PaymentService extends HttpClientBase {
     private midtransService: PaymentGatewayService,
     private configService: ConfigService,
     private prismaService: PrismaService,
+    private apiKeyManagerService: ApiKeyManagerService,
   ) {
     super();
     this.init();
@@ -139,5 +143,27 @@ export class PaymentService extends HttpClientBase {
       },
     });
     return BaseResponse.getResponse(transaction);
+  }
+
+  async getCustomerTrxByPaymentStatus(inquiryReq: CustomerTrxInquiryRequest) {
+    const { customerName, paymentStatus } = inquiryReq;
+    const transactions =
+      await this.prismaService.findTransactionsByOwnerAndPaymentStatus(
+        customerName,
+        paymentStatus,
+      );
+
+    const results: TrxInquiryResponse[] = [];
+    if (transactions) {
+      for (const trx of transactions) {
+        const { responseData } =
+          await this.apiKeyManagerService.getTierDetailsById(trx.tierId);
+        const paymentUrl = await this.midtransService.getPaymentUrl(
+          trx.vendorPaymentToken,
+        );
+        results.push(TrxInquiryResponse.build(trx, responseData, paymentUrl));
+      }
+    }
+    return BaseResponse.getResponse<TrxInquiryResponse[]>(results);
   }
 }

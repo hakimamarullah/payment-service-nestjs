@@ -75,4 +75,11 @@ export class ApiKeyManagerService extends HttpClientBase {
 
     return { responseMessage, responseCode, responseData };
   }
+
+  async getTierDetailsById(tierId: number) {
+    return await this.handleRequest(
+      HttpMethod.GET,
+      `/api-key-manager/tiers/${tierId}/details`,
+    );
+  }
 }
