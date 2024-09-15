@@ -23,7 +23,7 @@ export class TrxInquiryResponse {
   @ApiProperty()
   tierName: string;
 
-  @ApiProperty()
+  @ApiProperty({ type: String })
   paymentUrl: string | undefined;
 
   @ApiProperty()
