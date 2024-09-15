@@ -3,7 +3,6 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsNotEmpty } from 'class-validator';
 
 export class CustomerTrxInquiryRequest {
-  @ApiProperty()
   customerName: string;
 
   @ApiProperty({ type: PaymentStatus, enum: PaymentStatus })

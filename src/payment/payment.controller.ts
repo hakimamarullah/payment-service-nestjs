@@ -63,7 +63,7 @@ export class PaymentController {
     return await this.paymentService.getTransactionById(id);
   }
 
-  @Get('/transactions/users/me')
+  @Post('/transactions/users/me')
   @ApiBearerAuth()
   @ApiOperation({
     summary: "Get Current User's Transactions by Payment Status",
