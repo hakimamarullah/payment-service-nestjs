@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { IsNumber } from 'class-validator';
 
 export class OrderRequest {
   @ApiProperty()
@@ -9,8 +9,5 @@ export class OrderRequest {
   )
   tierId: number;
 
-  @ApiProperty()
-  @IsString({ message: 'customerName must be a string' })
-  @IsNotEmpty({ message: 'customerName is required' })
   customerName: string;
 }

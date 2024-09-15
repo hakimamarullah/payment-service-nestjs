@@ -38,7 +38,8 @@ export class PaymentController {
   @HttpCode(HttpStatus.OK)
   @ApiBaseResponse({ model: OrderResponse })
   @ApiBody({ type: OrderRequest })
-  async buyApiKey(@Body() orderRequest: OrderRequest) {
+  async buyApiKey(@Req() req: Request, @Body() orderRequest: OrderRequest) {
+    orderRequest.customerName = getUsername(req);
     return await this.paymentService.buyApiKey(orderRequest);
   }
 
