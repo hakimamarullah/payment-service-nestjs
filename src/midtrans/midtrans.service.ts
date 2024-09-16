@@ -76,6 +76,7 @@ export class MidtransService
       dataToUpdate.status = PaymentStatus.PAID;
     } else if ('pending' !== transactionStatus) {
       dataToUpdate.status = PaymentStatus.CANCELLED;
+      dataToUpdate.note = transactionStatus;
     }
     const update = await this.prismaService.transactions.update({
       where: {

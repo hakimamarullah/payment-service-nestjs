@@ -108,6 +108,7 @@ export class SchedulerService {
       },
       data: {
         status: PaymentStatus.CANCELLED,
+        note: 'Transaction expired',
       },
     });
 
