@@ -1,8 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma-service/prisma.service';
 import { ApiKeyManagerService } from '../api-key-manager/api-key-manager.service';
-import { JobStatus } from '@prisma/client';
+import { JobStatus, PaymentStatus } from '@prisma/client';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { ConfigService } from '@nestjs/config';
+import { stringTimeunitToMillis } from '@hakimamarullah/commonbundle-nestjs';
 
 @Injectable()
 export class SchedulerService {
@@ -10,6 +12,7 @@ export class SchedulerService {
   constructor(
     private prismaService: PrismaService,
     private apiKeyManager: ApiKeyManagerService,
+    private configService: ConfigService,
   ) {}
 
   @Cron(CronExpression.EVERY_30_SECONDS)
@@ -84,5 +87,30 @@ export class SchedulerService {
       });
     }
     this.logger.log('JOB: GENERATE API KEY COMPLETED');
+  }
+
+  @Cron(CronExpression.EVERY_30_SECONDS) // Adjust the cron expression as needed
+  async handleCron() {
+    const threshold = this.configService.get<string>(
+      'TRANSACTION_THRESHOLD',
+      '10m',
+    );
+    this.logger.log(`Cron job started. Transaction threshold: ${threshold}`);
+    const thresholdInMilliseconds = stringTimeunitToMillis(threshold);
+    const now = new Date();
+
+    const { count } = await this.prismaService.transactions.updateMany({
+      where: {
+        status: PaymentStatus.PENDING,
+        createdAt: {
+          lt: new Date(now.getTime() - thresholdInMilliseconds),
+        },
+      },
+      data: {
+        status: PaymentStatus.CANCELLED,
+      },
+    });
+
+    this.logger.log(`Cron job completed. ${count} transactions cancelled.`);
   }
 }
