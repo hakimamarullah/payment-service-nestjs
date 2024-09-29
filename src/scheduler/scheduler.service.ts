@@ -29,7 +29,14 @@ export class SchedulerService {
 
     const todayJobs = await this.prismaService.generateKeyJob.findMany({
       where: {
-        status: JobStatus.OPEN,
+        OR: [
+          {
+            status: JobStatus.OPEN,
+          },
+          {
+            status: JobStatus.RETRY,
+          },
+        ],
         createdAt: {
           gte: startOfToday,
           lt: endOfToday,
@@ -41,6 +48,11 @@ export class SchedulerService {
     }
 
     const orderIds = todayJobs.map((job: any) => <string>job.refId);
+    const jobRetryCount = new Map<string, number>();
+    todayJobs.forEach((job: any) => {
+      jobRetryCount.set(job.refId, job.retryCount);
+    });
+
     const transactions = await this.prismaService.transactions.findMany({
       where: {
         id: {
@@ -60,6 +72,7 @@ export class SchedulerService {
     for (const payload of requestsPayload) {
       let status: JobStatus;
       let error = undefined;
+      let newRetryCount = 0;
       try {
         const { responseCode, responseMessage } =
           await this.apiKeyManager.generateApiKey(
@@ -68,11 +81,17 @@ export class SchedulerService {
             payload.status,
             payload.referenceId,
           );
-        status = responseCode !== 200 ? JobStatus.FAILED : JobStatus.DONE;
+        const { status: jobStatus, retry: retCount } = this.translateJobStatus(
+          responseCode,
+          jobRetryCount.get(payload.referenceId) ?? 0,
+        );
+        status = jobStatus;
+        newRetryCount = retCount;
         error = responseCode !== 200 ? responseMessage : undefined;
       } catch (err) {
         this.logger.error(err);
-        status = JobStatus.FAILED;
+        status = JobStatus.RETRY;
+        newRetryCount = (jobRetryCount.get(payload.referenceId) ?? 0) + 1;
         error = err.message;
       }
 
@@ -83,6 +102,7 @@ export class SchedulerService {
         data: {
           status,
           error,
+          retryCount: newRetryCount,
         },
       });
     }
@@ -113,5 +133,28 @@ export class SchedulerService {
     });
 
     this.logger.log(`Cron job completed. ${count} transactions cancelled.`);
+  }
+
+  private translateJobStatus(httpStatus: number, currentRetryCount: number) {
+    const maxRetries = this.configService.get<number>(
+      'GENERATE_KEY_MAX_RETRIES',
+      5,
+    );
+
+    if (httpStatus === 200 || httpStatus === 409) {
+      return {
+        status: JobStatus.DONE,
+        retry: currentRetryCount,
+      };
+    } else if (currentRetryCount < maxRetries) {
+      return {
+        status: JobStatus.RETRY,
+        retry: currentRetryCount + 1,
+      };
+    }
+    return {
+      status: JobStatus.FAILED,
+      retry: currentRetryCount,
+    };
   }
 }
