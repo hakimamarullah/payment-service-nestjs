@@ -115,19 +115,40 @@ export class PaymentService extends HttpClientBase {
     };
 
     const paymentReq = new PaymentRequestDto(payload);
-    const response = this.midtransService.createPayment(paymentReq);
-    const { token: snapToken } = await response;
+    let token = undefined;
+
+    try {
+      const response = await this.midtransService.createPayment(paymentReq);
+      token = response.token;
+    } catch (error) {
+      this.logger.error(error);
+    }
+
+    if (!token) {
+      await this.prismaService.transactions.update({
+        where: {
+          id: transaction.id,
+        },
+        data: {
+          status: PaymentStatus.CANCELLED,
+        },
+      });
+      return BaseResponse.getResponse(
+        OrderResponse.build(transaction),
+        'Failed to create payment token',
+        400,
+      );
+    }
     await this.prismaService.transactions.update({
       where: {
         id: transaction.id,
       },
       data: {
-        vendorPaymentToken: snapToken,
+        vendorPaymentToken: token,
       },
     });
     const orderResponse = OrderResponse.build(transaction);
-    orderResponse.paymentUrl =
-      await this.midtransService.getPaymentUrl(snapToken);
+    orderResponse.paymentUrl = await this.midtransService.getPaymentUrl(token);
     return BaseResponse.getResponse(orderResponse);
   }
 

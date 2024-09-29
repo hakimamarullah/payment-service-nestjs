@@ -3,7 +3,6 @@ import { PaymentGatewayService } from '../services/interfaces/payment-gateway-se
 import { PaymentRequestDto } from '../services/dto/payment-request.dto';
 
 import { ConfigService } from '@nestjs/config';
-import axios from 'axios';
 import { createHash } from 'crypto';
 import { MidtransNotification } from './dto/midtrans-notification.dto';
 import { PrismaService } from '../prisma-service/prisma.service';
@@ -37,15 +36,16 @@ export class MidtransService
     const baseUrl = isSandBox
       ? 'https://app.sandbox.midtrans.com/snap'
       : 'https://app.midtrans.com/snap';
-    this.httpClient = axios.create({
-      baseURL: baseUrl,
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-        Authorization: `Basic ${authToken}`,
+    this.initConfig({
+      enableLogger: true,
+      options: {
+        baseURL: baseUrl,
+        headers: {
+          Authorization: `Basic ${authToken}`,
+        },
+        validateStatus: (status: number) => status === 200 || status === 201,
       },
     });
-    this.initClientLogger();
   }
   async createPayment(paymentRequestDto: PaymentRequestDto): Promise<any> {
     return await this.handleRequest(
