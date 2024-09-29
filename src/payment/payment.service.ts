@@ -61,95 +61,82 @@ export class PaymentService extends HttpClientBase {
       `${this.authBaseUrl}/users/${orderRequest.customerName}/details`,
     );
 
-    if (apiKeyTierInfo.name === 'FREE') {
-      const transaction = (await this.prismaService.transactions.create({
+    // Start a transaction
+    return this.prismaService.$transaction(async (prisma) => {
+      if (apiKeyTierInfo.name === 'FREE') {
+        const transaction = (await prisma.transactions.create({
+          data: {
+            customerName: orderRequest.customerName,
+            tierId: apiKeyTierInfo.id,
+            adminFee: 0.0,
+            amount: apiKeyTierInfo.price,
+            status: PaymentStatus.PAID,
+            currency: 'IDR',
+            note: `Free Tier (No charge)`,
+          },
+        })) as any;
+
+        await this.prismaService.createGenerateKeyJob(transaction.id);
+        return BaseResponse.getResponse(OrderResponse.build(transaction));
+      }
+
+      const transaction = (await prisma.transactions.create({
         data: {
           customerName: orderRequest.customerName,
           tierId: apiKeyTierInfo.id,
           adminFee: 0.0,
           amount: apiKeyTierInfo.price,
-          status: PaymentStatus.PAID,
+          status: PaymentStatus.PENDING,
+          vendorName: 'Midtrans',
           currency: 'IDR',
-          note: `Free Tier (No charge)`,
+          note: `Buy API Key (Tier: ${apiKeyTierInfo.name})`,
         },
       })) as any;
 
-      await this.prismaService.createGenerateKeyJob(transaction.id);
-      return BaseResponse.getResponse(OrderResponse.build(transaction));
-    }
+      const itemDetails = {
+        id: apiKeyTierInfo.id,
+        price: apiKeyTierInfo.price,
+        name: apiKeyTierInfo.name,
+        quantity: 1,
+      };
 
-    const transaction = (await this.prismaService.transactions.create({
-      data: {
-        customerName: orderRequest.customerName,
-        tierId: apiKeyTierInfo.id,
-        adminFee: 0.0,
-        amount: apiKeyTierInfo.price,
-        status: PaymentStatus.PENDING,
-        vendorName: 'Midtrans',
-        currency: 'IDR',
-        note: `Buy API Key (Tier: ${apiKeyTierInfo.name})`,
-      },
-    })) as any;
+      const transactionDetails = {
+        order_id: transaction.id,
+        gross_amount: apiKeyTierInfo.price,
+      };
 
-    const itemDetails = {
-      id: apiKeyTierInfo.id,
-      price: apiKeyTierInfo.price,
-      name: apiKeyTierInfo.name,
-      quantity: 1,
-    };
+      const customerDetails = {
+        first_name: orderRequest.customerName,
+        phone: userInfo.phone,
+      };
 
-    const transactionDetails = {
-      order_id: transaction.id,
-      gross_amount: apiKeyTierInfo.price,
-    };
+      const payload = {
+        customer_details: customerDetails,
+        transaction_details: transactionDetails,
+        item_details: [itemDetails],
+      };
 
-    const customerDetails = {
-      first_name: orderRequest.customerName,
-      phone: userInfo.phone,
-    };
+      const paymentReq = new PaymentRequestDto(payload);
 
-    const payload = {
-      customer_details: customerDetails,
-      transaction_details: transactionDetails,
-      item_details: [itemDetails],
-    };
-
-    const paymentReq = new PaymentRequestDto(payload);
-    let token = undefined;
-
-    try {
+      // Move the payment creation outside of try-catch
       const response = await this.midtransService.createPayment(paymentReq);
-      token = response.token;
-    } catch (error) {
-      this.logger.error(error);
-    }
+      const token = response.token;
 
-    if (!token) {
-      await this.prismaService.transactions.update({
+      // Update the transaction with the payment token
+      await prisma.transactions.update({
         where: {
           id: transaction.id,
         },
         data: {
-          status: PaymentStatus.CANCELLED,
+          vendorPaymentToken: token,
         },
       });
-      return BaseResponse.getResponse(
-        OrderResponse.build(transaction),
-        'Failed to create payment token',
-        400,
-      );
-    }
-    await this.prismaService.transactions.update({
-      where: {
-        id: transaction.id,
-      },
-      data: {
-        vendorPaymentToken: token,
-      },
+
+      const orderResponse = OrderResponse.build(transaction);
+      orderResponse.paymentUrl =
+        await this.midtransService.getPaymentUrl(token);
+      return BaseResponse.getResponse(orderResponse);
     });
-    const orderResponse = OrderResponse.build(transaction);
-    orderResponse.paymentUrl = await this.midtransService.getPaymentUrl(token);
-    return BaseResponse.getResponse(orderResponse);
   }
 
   async handleMidtransCallback(body: Record<string, any>) {
