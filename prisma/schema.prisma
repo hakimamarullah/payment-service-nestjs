@@ -22,6 +22,7 @@ enum PaymentStatus {
 enum JobStatus {
   OPEN
   DONE
+  RETRY
   FAILED
 }
 
@@ -59,12 +60,13 @@ model ApiLog {
 }
 
 model GenerateKeyJob {
-  jobId     Int       @id @default(autoincrement()) @map("job_id")
-  refId     String    @unique @map("ref_id")
-  status    JobStatus @default(OPEN)
-  error     String?   @map("error")
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @default(now()) @updatedAt
+  jobId      Int       @id @default(autoincrement()) @map("job_id")
+  refId      String    @unique @map("ref_id")
+  status     JobStatus @default(OPEN)
+  error      String?   @map("error")
+  retryCount Int       @default(0) @map("retry_count")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @default(now()) @updatedAt
 
   @@index([refId])
   @@map("generate_key_job")
